@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.m-outline-white {
+    outline: 1px solid #fff;
+}
+.m-outline-black {
+    outline: 1px solid #000;
+}
