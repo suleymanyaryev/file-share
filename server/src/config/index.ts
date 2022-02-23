@@ -8,8 +8,6 @@ declare global {
     }
 }
 
-console.log(Number(process.env.PORT));
-
 const config: Config = {
     HOST: process.env.HOST || "127.0.0.1",
     PORT: Number(process.env.PORT) || 5000,
