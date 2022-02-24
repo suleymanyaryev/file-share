@@ -2,10 +2,14 @@
 import { ref } from "vue";
 import { useRoute } from "vue-router";
 import { servers } from "../../utils/constants";
+import BaseFileInput from "@/components/base/FileInput.vue";
+import { saveAs } from "file-saver";
 
 const route = useRoute();
 const roomId = route.params.roomId;
 const isConnected = ref(false);
+const isSending = ref(false);
+const isReceiving = ref(false);
 
 const ws = new WebSocket(`ws://127.0.0.1:5000/api/v1/room/${roomId}`);
 let pc: RTCPeerConnection | null = null;
@@ -66,7 +70,7 @@ function onConnectionStateChange(e: Event) {
     }
 }
 
-function onRemoteIceCandidate(data) {
+function onRemoteIceCandidate(data: any) {
     if (!pc) {
         return;
     }
@@ -86,7 +90,7 @@ function onLocalIceCandidate(e: RTCPeerConnectionIceEvent) {
     }
 }
 
-function onRemoteAnswer(data) {
+function onRemoteAnswer(data: any) {
     if (!pc) {
         return;
     }
@@ -115,20 +119,15 @@ async function initConnection() {
 }
 
 async function onLocalDataChannel() {
-    dc = pc.createDataChannel("file-share");
+    dc = pc!.createDataChannel("file-share");
     dc.binaryType = "arraybuffer";
 
     dc.onopen = () => {
         console.log("local dc opened");
-        dc.send("ping");
     };
 
-    dc.onmessage = async (e) => {
-        console.log(`local dc message: ${e.data}`);
-
-        setTimeout(() => {
-            dc.send("ping");
-        }, 1000);
+    dc.onmessage = async (e: MessageEvent<string | ArrayBuffer>) => {
+        receiveFile(e);
     };
 
     dc.onerror = (e) => {
@@ -138,7 +137,7 @@ async function onLocalDataChannel() {
 
     dc.onclose = () => {
         console.log("local dc closed");
-        pc.close();
+        pc!.close();
     };
 }
 
@@ -150,12 +149,8 @@ function onRemoteDataChannel(e: RTCDataChannelEvent) {
         console.log("remote dc opened");
     };
 
-    dc.onmessage = async (e) => {
-        console.log(`remote dc message: ${e.data}`);
-
-        setTimeout(() => {
-            dc.send("pong");
-        }, 1000);
+    dc.onmessage = async (e: MessageEvent<string | ArrayBuffer>) => {
+        receiveFile(e);
     };
 
     dc.onerror = (e) => {
@@ -165,7 +160,7 @@ function onRemoteDataChannel(e: RTCDataChannelEvent) {
 
     dc.onclose = () => {
         console.log("remote dc close");
-        pc.close();
+        pc!.close();
     };
 }
 
@@ -190,12 +185,114 @@ async function onRemoteOffer({ offer }) {
     pc.onicecandidate = onLocalIceCandidate;
     pc.onconnectionstatechange = onConnectionStateChange;
 }
+
+function onNewFile(file: File) {
+    if (!isConnected.value) {
+        return;
+    }
+    if (isSending.value) {
+        return;
+    }
+
+    sendFile(file);
+}
+
+function sendFile(file: File) {
+    const name = file.name;
+    const type = file.type;
+    const size = file.size;
+    let maxMessageSize = 64 * 1024;
+    let length =
+        Math.trunc(size / maxMessageSize) +
+        (size % maxMessageSize !== 0 ? 1 : 0);
+
+    let maxBufferedAmount = 12 * 1024 * 1024;
+    let count = 0;
+    dc!.bufferedAmountLowThreshold = Math.trunc(maxBufferedAmount / 8);
+
+    dc!.send(
+        JSON.stringify({
+            type: "start-sending",
+            payload: {
+                name,
+                type,
+                size,
+                length,
+            },
+        })
+    );
+
+    function lowThresholdHandler() {
+        dc!.removeEventListener("bufferedamountlow", lowThresholdHandler);
+        queueHandler();
+    }
+
+    async function queueHandler() {
+        while (count < length) {
+            if (dc!.bufferedAmount > maxBufferedAmount) {
+                dc!.addEventListener("bufferedamountlow", lowThresholdHandler);
+                return;
+            }
+            const begin = count * maxMessageSize;
+            const end = begin + maxMessageSize;
+            const chunk = await file.slice(begin, end).arrayBuffer();
+            dc!.send(chunk);
+            count++;
+        }
+        dc!.send(
+            JSON.stringify({
+                type: "complete-sending",
+            })
+        );
+    }
+
+    queueHandler();
+}
+
+let count = 0;
+const progress = ref("");
+let blob: Blob | null = null;
+let meta: { name: string; type: string; size: number; length: number } | null =
+    null;
+
+function receiveFile(e: MessageEvent<string | ArrayBuffer>) {
+    if (typeof e.data === "string") {
+        const data = JSON.parse(e.data);
+        if (data.type === "start-sending") {
+            isReceiving.value = true;
+            progress.value = "";
+            count = 0;
+            blob = new Blob();
+            meta = data.payload;
+        }
+        if (data.type === "complete-sending") {
+            saveAs(blob!, meta!.name);
+            isReceiving.value = false;
+            progress.value = "";
+            count = 0;
+            blob = null;
+            meta = null;
+        }
+    }
+
+    if (e.data instanceof ArrayBuffer) {
+        count++;
+        progress.value = ((count / meta!.length) * 100).toFixed(2);
+        blob = new Blob([blob!, e.data], {
+            type: meta!.type,
+        });
+    }
+}
 </script>
 
 <template>
-    <div class="h-screen w-full flex items-center justify-center">
-        <h1 class="text-4xl">
+    <div class="h-screen flex flex-col items-center p-5 w-full bg-blue-200">
+        <h1 class="text-2xl mb-5">
             {{ isConnected ? "Connected" : "Disconnected" }}
         </h1>
+
+        {{ progress }}
+
+        <BaseFileInput @new-file="onNewFile" />
     </div>
 </template>

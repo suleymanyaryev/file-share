@@ -17,11 +17,13 @@
         "*.{ts,tsx,js,jsx,vue}": "eslint --fix"
     },
     "dependencies": {
+        "file-saver": "^2.0.5",
         "vue": "^3.2.29",
         "vue-router": "^4.0.12"
     },
     "devDependencies": {
         "@rushstack/eslint-patch": "^1.1.0",
+        "@types/file-saver": "^2.0.5",
         "@types/node": "^16.11.22",
         "@vitejs/plugin-vue": "^2.1.0",
         "@vue/eslint-config-prettier": "^7.0.0",
