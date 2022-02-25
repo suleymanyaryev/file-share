@@ -21,12 +21,17 @@ function onChange(e: Event) {
 
 <template>
     <div
-        class="relative w-100 h-60 rounded-xl border-2 border-white border-dashed"
+        class="relative w-100 h-60 flex items-center justify-center rounded-xl border-2 border-white border-dashed cursor-pointer"
     >
         <input
             type="file"
-            class="absolute left-0 top-0 w-full h-full opacity-0"
+            class="absolute left-0 top-0 w-full h-full opacity-0 cursor-pointer"
             @change="onChange"
         />
+
+        <div class="text-center text-2xl text-white">
+            Browse or <br />
+            Drag&Drop files here
+        </div>
     </div>
 </template>

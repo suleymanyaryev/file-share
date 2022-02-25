@@ -10,6 +10,8 @@ const roomId = route.params.roomId;
 const isConnected = ref(false);
 const isSending = ref(false);
 const isReceiving = ref(false);
+const url = window.location.href;
+const history = ref<any[]>([]);
 
 const ws = new WebSocket(`ws://127.0.0.1:5000/api/v1/room/${roomId}`);
 let pc: RTCPeerConnection | null = null;
@@ -201,13 +203,26 @@ function sendFile(file: File) {
     const name = file.name;
     const type = file.type;
     const size = file.size;
+
     let maxMessageSize = 64 * 1024;
     let length =
         Math.trunc(size / maxMessageSize) +
         (size % maxMessageSize !== 0 ? 1 : 0);
 
     let maxBufferedAmount = 12 * 1024 * 1024;
-    let count = 0;
+
+    history.value.push({
+        type: "out",
+        filename: name,
+        filetype: type,
+        filesize: size,
+        length: length,
+        count: 0,
+        progress: "0.00",
+    });
+
+    const current = history.value[history.value.length - 1];
+
     dc!.bufferedAmountLowThreshold = Math.trunc(maxBufferedAmount / 8);
 
     dc!.send(
@@ -228,58 +243,68 @@ function sendFile(file: File) {
     }
 
     async function queueHandler() {
-        while (count < length) {
+        while (current.count < length) {
             if (dc!.bufferedAmount > maxBufferedAmount) {
                 dc!.addEventListener("bufferedamountlow", lowThresholdHandler);
                 return;
             }
-            const begin = count * maxMessageSize;
+            const begin = current.count * maxMessageSize;
             const end = begin + maxMessageSize;
             const chunk = await file.slice(begin, end).arrayBuffer();
             dc!.send(chunk);
-            count++;
+            current.count++;
+            current.progress = current.count / current.length;
         }
         dc!.send(
             JSON.stringify({
                 type: "complete-sending",
             })
         );
+        isSending.value = false;
     }
 
     queueHandler();
 }
 
-let count = 0;
-const progress = ref("");
-let blob: Blob | null = null;
-let meta: { name: string; type: string; size: number; length: number } | null =
-    null;
+let receiveIndex = -1;
+let receiveBlob: Blob | null = null;
 
 function receiveFile(e: MessageEvent<string | ArrayBuffer>) {
     if (typeof e.data === "string") {
         const data = JSON.parse(e.data);
         if (data.type === "start-sending") {
+            if (isReceiving.value) {
+                return;
+            }
             isReceiving.value = true;
-            progress.value = "";
-            count = 0;
-            blob = new Blob();
-            meta = data.payload;
+            history.value.push({
+                type: "in",
+                filename: data.payload.name,
+                filetype: data.payload.type,
+                filesize: data.payload.size,
+                length: data.payload.length,
+                count: 0,
+                progress: "0.00",
+            });
+            receiveIndex = history.value.length - 1;
+            receiveBlob = new Blob();
         }
         if (data.type === "complete-sending") {
-            saveAs(blob!, meta!.name);
+            const current = history.value[receiveIndex];
+            saveAs(receiveBlob!, current.filename);
             isReceiving.value = false;
-            progress.value = "";
-            count = 0;
-            blob = null;
-            meta = null;
+            receiveIndex = -1;
+            receiveBlob = null;
         }
     }
 
     if (e.data instanceof ArrayBuffer) {
-        count++;
-        progress.value = ((count / meta!.length) * 100).toFixed(2);
-        blob = new Blob([blob!, e.data], {
-            type: meta!.type,
+        const current = history.value[receiveIndex];
+        current.count++;
+        current.progress = current.count / current.length;
+        // current.progress = ((current.count / current.length) * 100).toFixed(2);
+        receiveBlob = new Blob([receiveBlob!, e.data], {
+            type: current!.type,
         });
     }
 }
@@ -287,12 +312,47 @@ function receiveFile(e: MessageEvent<string | ArrayBuffer>) {
 
 <template>
     <div class="h-screen flex flex-col items-center p-5 w-full bg-blue-200">
-        <h1 class="text-2xl mb-5">
-            {{ isConnected ? "Connected" : "Disconnected" }}
+        <template v-if="isConnected">
+            <BaseFileInput @new-file="onNewFile" />
+            <div class="w-100 mt-5 bg-gray-100 p-2 rounded-xl">
+                <div class="p-1 max-h-100 overflow-y-auto scroll-hidden">
+                    <div
+                        v-for="(item, index) in history"
+                        :key="index"
+                        class="px-0.5 py-1.5"
+                    >
+                        <div
+                            class="h-20 py-2 px-4 w-full flex flex-col bg-white shadow-md rounded-md"
+                        >
+                            <div class="flex mb-2">
+                                <span> {{ item.filename }} </span>
+                                <span class="ml-auto">
+                                    {{ item.type === "out" ? "->" : "<-" }}
+                                </span>
+                            </div>
+
+                            <div
+                                class="relative h-1.5 w-full bg-gray-300 rounded-2xl overflow-hidden"
+                            >
+                                <div
+                                    class="absolute w-full h-full bg-blue-500 transform origin-left rounded-2xl scale-x-50"
+                                    :style="{
+                                        'transform': `scaleX(${item.progress})`,
+                                    }"
+                                ></div>
+                            </div>
+
+                            <span class="mt-1 text-xs text-center">
+                                {{ (item.progress * 100).toFixed(2) }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+        <h1 v-else class="text-center my-auto text-2xl">
+            Share this link <br />
+            {{ url }}
         </h1>
-
-        {{ progress }}
-
-        <BaseFileInput @new-file="onNewFile" />
     </div>
 </template>
