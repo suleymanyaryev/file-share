@@ -12,6 +12,7 @@ const isSending = ref(false);
 const isReceiving = ref(false);
 const url = window.location.href;
 const history = ref<any[]>([]);
+const queue = ref<any[]>([]);
 
 const ws = new WebSocket(`ws://127.0.0.1:5000/api/v1/room/${roomId}`);
 let pc: RTCPeerConnection | null = null;
@@ -193,10 +194,20 @@ function onNewFile(file: File) {
         return;
     }
     if (isSending.value) {
+        queue.value.push(file);
         return;
     }
 
+    isSending.value = true;
     sendFile(file);
+}
+
+function nextSendHandler() {
+    if (queue.value.length > 0) {
+        const file = queue.value[0];
+        queue.value = queue.value.slice(1);
+        onNewFile(file);
+    }
 }
 
 function sendFile(file: File) {
@@ -261,6 +272,7 @@ function sendFile(file: File) {
             })
         );
         isSending.value = false;
+        setTimeout(nextSendHandler);
     }
 
     queueHandler();
@@ -302,7 +314,6 @@ function receiveFile(e: MessageEvent<string | ArrayBuffer>) {
         const current = history.value[receiveIndex];
         current.count++;
         current.progress = current.count / current.length;
-        // current.progress = ((current.count / current.length) * 100).toFixed(2);
         receiveBlob = new Blob([receiveBlob!, e.data], {
             type: current!.type,
         });
@@ -344,6 +355,35 @@ function receiveFile(e: MessageEvent<string | ArrayBuffer>) {
 
                             <span class="mt-1 text-xs text-center">
                                 {{ (item.progress * 100).toFixed(2) }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div
+                        v-for="(item, index) in queue"
+                        :key="index"
+                        class="px-0.5 py-1.5"
+                    >
+                        <div
+                            class="h-20 py-2 px-4 w-full flex flex-col bg-white shadow-md rounded-md"
+                        >
+                            <div class="flex mb-2">
+                                <span> {{ item.name }} </span>
+                                <span class="ml-auto">
+                                    {{ "->" }}
+                                </span>
+                            </div>
+
+                            <div
+                                class="relative h-1.5 w-full bg-gray-300 rounded-2xl overflow-hidden"
+                            >
+                                <div
+                                    class="absolute w-full h-full bg-blue-500 transform origin-left rounded-2xl scale-x-0"
+                                ></div>
+                            </div>
+
+                            <span class="mt-1 text-xs text-center">
+                                {{ (0).toFixed(2) }}
                             </span>
                         </div>
                     </div>
