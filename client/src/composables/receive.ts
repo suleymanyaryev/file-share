@@ -16,6 +16,7 @@ export default function (glob: Glob) {
                 glob.history.value.push({
                     type: "in",
                     status: "in-progress",
+                    file: null,
                     filename: data.payload.name,
                     filetype: data.payload.type,
                     filesize: data.payload.size,
@@ -30,6 +31,11 @@ export default function (glob: Glob) {
             if (data.type === "paused") {
                 const current = glob.history.value[receiveIndex];
                 current.status = "paused";
+            }
+
+            if (data.type === "resumed") {
+                const current = glob.history.value[receiveIndex];
+                current.status = "in-progress";
             }
 
             if (data.type === "canceled") {

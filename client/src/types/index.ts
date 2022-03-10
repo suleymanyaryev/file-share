@@ -20,6 +20,7 @@ export type HistoryItemType =
 export interface HistoryItem {
     type: "in" | "out";
     status: HistoryItemType;
+    file: File | null;
     filename: string;
     filetype: string;
     filesize: number;

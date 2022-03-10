@@ -13,9 +13,9 @@ import useRemotePeer from "@/composables/remote-peer";
 const route = useRoute();
 const roomId = route.params.roomId;
 const url = window.location.href;
-
 const glob = useGlob(`ws://127.0.0.1:5000/api/v1/room/${roomId}`);
-const { sendFile } = useSend(glob);
+
+const { sendFile, pauseSending, resumeSending } = useSend(glob);
 const { receiveFile } = useReceive(glob);
 const { onConnectionStateChange, onLocalIceCandidate } = useCommon(glob);
 const { initConnection } = useLocalPeer(
@@ -69,9 +69,22 @@ glob.ws.onmessage = (event) => {
 };
 
 const { history, queue, isConnected } = glob;
+
+function onPause(index: number) {
+    if (history.value[index].type === "out") {
+        pauseSending(index);
+    }
+}
+
+function onResume(index: number) {
+    if (history.value[index].type === "out") {
+        resumeSending(index);
+    }
+}
 </script>
 
 <template>
+    <!-- defineEmits(["pause", "cancel", "resume", "remove"]); -->
     <div class="h-screen flex flex-col items-center p-5 w-full bg-blue-200">
         <template v-if="isConnected">
             <BaseFileInput @new-file="sendFile" />
@@ -81,12 +94,15 @@ const { history, queue, isConnected } = glob;
                         v-for="(item, index) in history"
                         :key="index"
                         :item="item"
+                        @pause="onPause(index)"
+                        @resume="onResume(index)"
                     />
 
                     <ItemInQueue
                         v-for="(item, index) in queue"
                         :key="index"
                         :item="item"
+                        @remove="queue.splice(index, 1)"
                     />
                 </div>
             </div>

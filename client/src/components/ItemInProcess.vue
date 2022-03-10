@@ -23,7 +23,8 @@ defineEmits(["pause", "cancel", "resume", "remove"]);
                 <div class="ml-auto">
                     <button
                         v-if="item.status === 'in-progress'"
-                        class="mx-0.5 px-1 rounded-sm bg-yellow-500 text-white text-xs"
+                        :disabled="item.type === 'in'"
+                        class="mx-0.5 px-1 rounded-sm bg-yellow-500 text-white text-xs disabled:opacity-75"
                         @click="$emit('pause')"
                     >
                         pause
@@ -31,13 +32,15 @@ defineEmits(["pause", "cancel", "resume", "remove"]);
 
                     <template v-if="item.status === 'paused'">
                         <button
-                            class="mx-0.5 px-1.5 rounded-sm bg-orange-500 text-white text-xs"
+                            class="mx-0.5 px-1.5 rounded-sm bg-orange-500 text-white text-xs disabled:opacity-75"
+                            :disabled="item.type === 'in'"
                             @click="$emit('cancel')"
                         >
                             cancel
                         </button>
                         <button
-                            class="mx-0.5 px-1.5 rounded-sm bg-green-600 text-white text-xs"
+                            class="mx-0.5 px-1.5 rounded-sm bg-green-600 text-white text-xs disabled:opacity-75"
+                            :disabled="item.type === 'in'"
                             @click="$emit('resume')"
                         >
                             resume

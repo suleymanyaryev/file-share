@@ -7,6 +7,8 @@ defineProps({
         required: true,
     },
 });
+
+defineEmits(["remove"]);
 </script>
 
 <template>
@@ -20,6 +22,7 @@ defineProps({
                 <div class="ml-auto">
                     <button
                         class="mx-0.5 px-1.5 rounded-sm bg-red-500 text-white text-xs"
+                        @click="$emit('remove')"
                     >
                         remove
                     </button>
