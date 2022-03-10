@@ -72,7 +72,16 @@ defineEmits(["pause", "cancel", "resume", "remove"]);
             </div>
 
             <div class="flex">
-                <span class="mr-auto w-6"> </span>
+                <span class="mr-auto w-6 relative">
+                    <div
+                        class="absolute bottom-0 left-0 text-xs whitespace-nowrap"
+                    >
+                        Status:
+                        <span class="font-bold">
+                            {{ item.status }}
+                        </span>
+                    </div>
+                </span>
                 <span class="mt-1 text-xs text-center">
                     {{ (item.progress * 100).toFixed(2) }}
                 </span>

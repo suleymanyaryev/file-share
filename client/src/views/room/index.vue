@@ -15,7 +15,7 @@ const roomId = route.params.roomId;
 const url = window.location.href;
 const glob = useGlob(`ws://127.0.0.1:5000/api/v1/room/${roomId}`);
 
-const { sendFile, pauseSending, resumeSending } = useSend(glob);
+const { sendFile, pauseSending, resumeSending, cancelSending } = useSend(glob);
 const { receiveFile } = useReceive(glob);
 const { onConnectionStateChange, onLocalIceCandidate } = useCommon(glob);
 const { initConnection } = useLocalPeer(
@@ -81,6 +81,12 @@ function onResume(index: number) {
         resumeSending(index);
     }
 }
+
+function onCancel(index: number) {
+    if (history.value[index].type === "out") {
+        cancelSending(index);
+    }
+}
 </script>
 
 <template>
@@ -96,6 +102,7 @@ function onResume(index: number) {
                         :item="item"
                         @pause="onPause(index)"
                         @resume="onResume(index)"
+                        @cancel="onCancel(index)"
                     />
 
                     <ItemInQueue

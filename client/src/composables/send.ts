@@ -84,6 +84,17 @@ export default function (glob: Glob) {
         sendingLoop(current);
     }
 
+    function cancelSending(index: number) {
+        const current = glob.history.value[index];
+        current.status = "canceled";
+        current.file = null;
+        glob.dc!.send(
+            JSON.stringify({
+                type: "canceled",
+            })
+        );
+    }
+
     function sendingLoop(current: HistoryItem) {
         function lowThresholdHandler() {
             glob.dc!.removeEventListener(
@@ -136,5 +147,5 @@ export default function (glob: Glob) {
         queueHandler();
     }
 
-    return { sendFile, pauseSending, resumeSending };
+    return { sendFile, pauseSending, resumeSending, cancelSending };
 }
