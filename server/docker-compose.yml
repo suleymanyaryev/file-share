@@ -1,0 +1,10 @@
+version: "3.4"
+
+services:
+    backend:
+        image: file-share/server:latest
+        ports:
+          - 127.0.0.1:5000:5000
+        environment:
+            - HOST=0.0.0.0
+            - PORT=5000
