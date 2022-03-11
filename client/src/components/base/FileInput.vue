@@ -21,7 +21,7 @@ function onChange(e: Event) {
 
 <template>
     <div
-        class="relative w-100 h-60 flex items-center justify-center rounded-xl border-2 border-white border-dashed cursor-pointer"
+        class="relative max-w-100 w-full h-60 flex items-center justify-center rounded-xl border-2 border-white border-dashed cursor-pointer"
     >
         <input
             type="file"

@@ -1,9 +1,8 @@
-import type { Glob } from "@/types";
+import type { Glob, HistoryItem } from "@/types";
 import { saveAs } from "file-saver";
 
 export default function (glob: Glob) {
-    let receiveIndex = -1;
-    let receiveBlob: Blob | null = null;
+    let current: HistoryItem | null = null;
 
     function receiveFile(e: MessageEvent<string | ArrayBuffer>) {
         if (typeof e.data === "string") {
@@ -17,6 +16,7 @@ export default function (glob: Glob) {
                     type: "in",
                     status: "in-progress",
                     file: null,
+                    blob: new Blob(),
                     filename: data.payload.name,
                     filetype: data.payload.type,
                     filesize: data.payload.size,
@@ -24,40 +24,35 @@ export default function (glob: Glob) {
                     count: 0,
                     progress: 0,
                 });
-                receiveIndex = glob.history.value.length - 1;
-                receiveBlob = new Blob();
+                current = glob.history.value[glob.history.value.length - 1];
             }
 
             if (data.type === "paused") {
-                const current = glob.history.value[receiveIndex];
-                current.status = "paused";
+                current!.status = "paused";
             }
 
             if (data.type === "resumed") {
-                const current = glob.history.value[receiveIndex];
-                current.status = "in-progress";
+                current!.status = "in-progress";
             }
 
             if (data.type === "canceled") {
-                const current = glob.history.value[receiveIndex];
-                current.status = "canceled";
+                current!.status = "canceled";
+                glob.isReceiving.value = false;
+                current!.blob = null;
             }
 
             if (data.type === "complete-sending") {
-                const current = glob.history.value[receiveIndex];
-                current.status = "completed";
-                saveAs(receiveBlob!, current.filename);
+                current!.status = "completed";
+                saveAs(current!.blob!, current!.filename);
                 glob.isReceiving.value = false;
-                receiveIndex = -1;
-                receiveBlob = null;
+                current!.blob = null;
             }
         }
 
         if (e.data instanceof ArrayBuffer) {
-            const current = glob.history.value[receiveIndex];
-            current.count++;
-            current.progress = current.count / current.length;
-            receiveBlob = new Blob([receiveBlob!, e.data], {
+            current!.count++;
+            current!.progress = current!.count / current!.length;
+            current!.blob = new Blob([current!.blob!, e.data], {
                 type: current!.type,
             });
         }

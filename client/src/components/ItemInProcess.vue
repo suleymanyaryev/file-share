@@ -19,7 +19,7 @@ defineEmits(["pause", "cancel", "resume", "remove"]);
             class="h-20 py-2 px-4 w-full flex flex-col bg-white shadow-md rounded-md"
         >
             <div class="flex mb-2 text-sm">
-                <span> {{ truncate(item.filename, 15) }} </span>
+                <span> {{ truncate(item.filename, 18) }} </span>
                 <div class="ml-auto">
                     <button
                         v-if="item.status === 'in-progress'"
@@ -64,9 +64,17 @@ defineEmits(["pause", "cancel", "resume", "remove"]);
                 class="relative h-1.5 w-full bg-gray-300 rounded-2xl overflow-hidden"
             >
                 <div
-                    class="absolute w-full h-full bg-blue-500 transform origin-left rounded-2xl scale-x-50"
+                    class="absolute w-full h-full transform origin-left rounded-2xl scale-x-50"
+                    :class="{
+                        'bg-blue-500': item.status === 'in-progress',
+                        'bg-green-500': item.status === 'completed',
+                        'bg-orange-400': item.status === 'paused',
+                        'bg-red-500': item.status === 'canceled',
+                    }"
                     :style="{
-                        'transform': `scaleX(${item.progress})`,
+                        'transform': `scaleX(${
+                            item.status === 'canceled' ? 1 : item.progress
+                        })`,
                     }"
                 ></div>
             </div>
@@ -82,8 +90,15 @@ defineEmits(["pause", "cancel", "resume", "remove"]);
                         </span>
                     </div>
                 </span>
-                <span class="mt-1 text-xs text-center">
-                    {{ (item.progress * 100).toFixed(2) }}
+                <span
+                    class="mt-1 text-xs text-center"
+                    :class="{
+                        'text-white':
+                            item.status === 'canceled' ||
+                            item.status === 'completed',
+                    }"
+                >
+                    {{ (item.progress * 100).toFixed(2) }}%
                 </span>
                 <span class="ml-auto text-center w-6">
                     {{ item.type === "out" ? "->" : "<-" }}

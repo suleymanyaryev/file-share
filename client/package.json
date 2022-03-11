@@ -17,6 +17,7 @@
         "*.{ts,tsx,js,jsx,vue}": "eslint --fix"
     },
     "dependencies": {
+        "copy-to-clipboard": "^3.3.1",
         "file-saver": "^2.0.5",
         "vue": "^3.2.29",
         "vue-router": "^4.0.12"

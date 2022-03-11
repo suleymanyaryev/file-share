@@ -54,6 +54,7 @@ export default function (glob: Glob) {
             type: "out",
             status: "in-progress",
             file,
+            blob: null,
             filename: name,
             filetype: type,
             filesize: size,
@@ -86,13 +87,18 @@ export default function (glob: Glob) {
 
     function cancelSending(index: number) {
         const current = glob.history.value[index];
+
         current.status = "canceled";
         current.file = null;
+        glob.isSending.value = false;
+        pausedFlag = false;
+
         glob.dc!.send(
             JSON.stringify({
                 type: "canceled",
             })
         );
+        setTimeout(nextFile, 1000);
     }
 
     function sendingLoop(current: HistoryItem) {
@@ -139,8 +145,10 @@ export default function (glob: Glob) {
             );
 
             current.status = "completed";
+            current.file = null;
             glob.isSending.value = false;
             pausedFlag = false;
+
             setTimeout(nextFile);
         }
 

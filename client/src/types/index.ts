@@ -21,6 +21,7 @@ export interface HistoryItem {
     type: "in" | "out";
     status: HistoryItemType;
     file: File | null;
+    blob: Blob | null;
     filename: string;
     filetype: string;
     filesize: number;
