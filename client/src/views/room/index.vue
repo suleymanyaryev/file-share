@@ -15,7 +15,7 @@ import copy from "copy-to-clipboard";
 const route = useRoute();
 const roomId = route.params.roomId;
 const url = window.location.href;
-const glob = useGlob(`ws://127.0.0.1:5000/api/v1/room/${roomId}`);
+const glob = useGlob(`ws://127.0.0.1:5000/${roomId}`);
 
 const { sendFile, pauseSending, resumeSending, cancelSending } = useSend(glob);
 const { receiveFile } = useReceive(glob);
@@ -24,13 +24,15 @@ const { initConnection } = useLocalPeer(
     glob,
     receiveFile,
     onConnectionStateChange,
-    onLocalIceCandidate
+    onLocalIceCandidate,
+    reset
 );
 const { onRemoteAnswer, onRemoteIceCandidate, onRemoteOffer } = useRemotePeer(
     glob,
     receiveFile,
     onConnectionStateChange,
-    onLocalIceCandidate
+    onLocalIceCandidate,
+    reset
 );
 
 glob.ws.onopen = () => {
@@ -71,6 +73,18 @@ glob.ws.onmessage = (event) => {
 };
 
 const { history, queue, isConnected } = glob;
+
+function reset() {
+    glob.pc = null;
+    glob.dc = null;
+    glob.history.value = [];
+    glob.queue.value = [];
+    glob.isConnected.value = false;
+    glob.isSending.value = false;
+    glob.isReceiving.value = false;
+    glob.history.value = [];
+    glob.queue.value = [];
+}
 
 function onPause(index: number) {
     if (history.value[index].type === "out") {

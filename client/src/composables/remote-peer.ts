@@ -5,7 +5,8 @@ export default function (
     glob: Glob,
     receiveFile: (e: MessageEvent<string | ArrayBuffer>) => void,
     onConnectionStateChange: (e: Event) => void,
-    onLocalIceCandidate: (e: RTCPeerConnectionIceEvent) => void
+    onLocalIceCandidate: (e: RTCPeerConnectionIceEvent) => void,
+    reset: () => void
 ) {
     function onRemoteAnswer(data: any) {
         if (!glob.pc) {
@@ -41,10 +42,11 @@ export default function (
         glob.dc.onclose = () => {
             console.log("remote dc close");
             glob.pc!.close();
+            reset();
         };
     }
 
-    async function onRemoteOffer({ offer }) {
+    async function onRemoteOffer({ offer }: { offer: any }) {
         glob.pc = new RTCPeerConnection(servers);
         glob.pc.ondatachannel = onRemoteDataChannel;
 

@@ -5,7 +5,8 @@ export default function (
     glob: Glob,
     receiveFile: (e: MessageEvent<string | ArrayBuffer>) => void,
     onConnectionStateChange: (e: Event) => void,
-    onLocalIceCandidate: (e: RTCPeerConnectionIceEvent) => void
+    onLocalIceCandidate: (e: RTCPeerConnectionIceEvent) => void,
+    reset: () => void
 ) {
     async function initConnection() {
         glob.pc = new RTCPeerConnection(servers);
@@ -48,6 +49,7 @@ export default function (
         glob.dc.onclose = () => {
             console.log("local dc closed");
             glob.pc!.close();
+            reset();
         };
     }
 
