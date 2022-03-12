@@ -15,7 +15,7 @@ import copy from "copy-to-clipboard";
 const route = useRoute();
 const roomId = route.params.roomId;
 const url = window.location.href;
-const glob = useGlob(`ws://127.0.0.1:5000/${roomId}`);
+const glob = useGlob(`${import.meta.env.VITE_SIGNALING_SERVER}/${roomId}`);
 
 const { sendFile, pauseSending, resumeSending, cancelSending } = useSend(glob);
 const { receiveFile } = useReceive(glob);
