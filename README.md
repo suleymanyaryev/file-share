@@ -1,3 +1,5 @@
-# FileShare
+> # File Share
 
-### Simple file-share web service
+---
+
+Simple peer-to-peer bidirectional file-share web application
